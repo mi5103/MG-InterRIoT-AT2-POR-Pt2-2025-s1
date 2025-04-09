@@ -14,15 +14,29 @@
 
 #include <WiFi.h> // to use functions for wifi connect of esp32 
 #include <secrets.h>
+#include <Adafruit_MQTT.h>
+#include <Adafruit_MQTT_Client.h>
 
 #define RETRY_PERIOD 1000 // wait time at first  
+#define MAX_ATTEMPTS 10
 
+WiFiClient client;
+Adafruit_MQTT_Client mqtt(&client, MQTT_SERVER, MQTT_SERVERPORT, MQTT_USERNAME, MQTT_PASSWORD);
 
 void setup() { 
   Serial.begin(115200); // serial connection and speed 
   if (wiFiConnect()) { 
     Serial.println("WiFi Connected"); 
-    wiFiDetails(); 
+    wiFiDetails();
+
+    bool mqttConnected = mqttConnected();
+
+    if (mqttConnected) {
+      Serial.Println("MQTT Connected")
+    } else {
+      Serial.Println("MQTT Connection Failed")
+    }
+
   } else {
     Serial.println("Connection Failed");
   }
@@ -52,6 +66,30 @@ bool wiFiConnect() {
   }
   return attempts;
 } 
+
+bool mqttConnect() {
+
+  uint8_t attempts = 0;
+  int8_t mqttConnectionResult;
+
+  Serial.println();
+  Serial.println("Connecting to MQTT Broker/Server...");
+
+  while ((mqttConnectionResult = mqtt.connect()) != 0 && attempts < MAX_ATTEMPTS) {
+
+    Serial.print(".");
+    
+    delay(RETRY_PERIOD);
+    attempts++;
+
+    if (mqttConnectionResult != 0) {
+      mqtt.disconnect();
+    }
+  }
+
+  return attempts < MAX_ATTEMPTS;
+}
+
 
 // Display the wifi details 
 void wiFiDetails() { 
