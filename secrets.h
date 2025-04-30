@@ -16,6 +16,6 @@ const char* ssid = "NMT-IoT";
 const char* password = "Its!Working"; 
 
 #define IO_USERNAME "mikoG"
-#define IO_KEY ""
-#define MQTT_SERVER "SERVER_HOST_NAME_OR_IP_ADDRESS"
-#define MQTT_SERVERPORT 1883
+#define IO_KEY "aio_XBKT975OLkQGhrl0EEdbUK6eiljt"
+#define IO_SERVER "io.adafruit.com"
+#define IO_SERVERPORT 1883

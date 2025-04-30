@@ -21,7 +21,7 @@
 #define MAX_ATTEMPTS 10
 
 WiFiClient client;
-Adafruit_MQTT_Client mqtt(&client, MQTT_SERVER, MQTT_SERVERPORT, MQTT_USERNAME, MQTT_PASSWORD);
+Adafruit_MQTT_Client mqtt(&client, IO_SERVER, IO_SERVERPORT, IO_USERNAME, IO_KEY);
 
 void setup() { 
   Serial.begin(115200); // serial connection and speed 
@@ -29,12 +29,12 @@ void setup() {
     Serial.println("WiFi Connected"); 
     wiFiDetails();
 
-    bool mqttConnected = mqttConnected();
+    bool mqttConnected = mqttConnect();
 
     if (mqttConnected) {
-      Serial.Println("MQTT Connected")
+      Serial.println("MQTT Connected");
     } else {
-      Serial.Println("MQTT Connection Failed")
+      Serial.println("MQTT Connection Failed");
     }
 
   } else {
