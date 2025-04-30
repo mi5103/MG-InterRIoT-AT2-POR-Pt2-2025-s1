@@ -17,28 +17,59 @@
 #include <Adafruit_MQTT.h>
 #include <Adafruit_MQTT_Client.h>
 
-#define RETRY_PERIOD 1000 // wait time at first  
-#define MAX_ATTEMPTS 10
+// #include <PubSubClient.h> 
+// #include <ArduinoJson.h>
 
-WiFiClient client;
-Adafruit_MQTT_Client mqtt(&client, IO_SERVER, IO_SERVERPORT, IO_USERNAME, IO_KEY);
+#define RETRY_PERIOD 1000 // wait time at first  
+#define MAX_ATTEMPTS 5
+
+#define uS_TO_S_FACTOR 1000000 // microseconds per second
+#define TIME_TO_SLEEP 30        // seconds, test:30sec
+
+WiFiClient subClient;
+Adafruit_MQTT_Client mqtt(&subClient, IO_SERVER, IO_SERVERPORT, IO_USERNAME, IO_KEY);
+PubSubClient client(subClient);
+
+long lastMsg = 0;
+char msg[50]; 
+int value = 0;
 
 void setup() { 
   Serial.begin(115200); // serial connection and speed 
+
+  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);  // wake the device once every 30 minutes
+  Serial.println();
+  Serial.println("Set up ESP32 to sleep every " + String(TIME_TO_SLEEP) + " seconds");
+  Serial.println();
+
   if (wiFiConnect()) { 
     Serial.println("WiFi Connected"); 
     wiFiDetails();
+
+    // client.setServer(IO_SERVER, IO_SERVERPORT);
+    // client.setCallback(callback);
 
     bool mqttConnected = mqttConnect();
 
     if (mqttConnected) {
       Serial.println("MQTT Connected");
     } else {
-      Serial.println("MQTT Connection Failed");
+      delay(1000);
+      // sleep if no connection to either MQTT 
+      Serial.println("Going to sleep");
+      delay(1000);
+      Serial.flush();
+      esp_deep_sleep_start();
+      Serial.println("MQTT Connection Failed");  // never excuted
     }
 
   } else {
-    Serial.println("Connection Failed");
+    // sleep if no connection to WiFi
+    Serial.println("Going to sleep");
+    delay(1000);
+    Serial.flush();
+    esp_deep_sleep_start();
+    Serial.println("WiFi Connection Failed");  // never excuted
   }
 } 
 
@@ -46,27 +77,40 @@ void loop() {
 
 }
 
+void callback(char* topic, byte* message, unsigned int length){
+  String messageTemp;
+
+  for(int i = 0; i < length; i++;)
+}
+
 // wifi connection status, return wifi connected or not 
 bool wiFiConnect() { 
   int attempts = 0; 
+  int8_t wifiConnectionResult;
 
   WiFi.mode(WIFI_STA); // make the board connect to wifi 
   WiFi.begin(ssid, password); // try to connect with ssid and password 
   Serial.println("Connecting to WiFi..."); 
 
   // wait connection 
-  while (WiFi.status() != WL_CONNECTED) { 
+  while (WiFi.status() != WL_CONNECTED && attempts < MAX_ATTEMPTS) { 
     Serial.print("."); 
     delay(RETRY_PERIOD); 
     attempts++;
-    if (attempts == 10) {
-      Serial.println();  // new line every 10 dots
-      attempts = 0;
+    // if (attempts == 10) {
+    //   Serial.println();  // new line every 10 dots
+    //   attempts = 0;
+    // }
+    if (attempts == MAX_ATTEMPTS) {
+      wiFiErrors(wifiConnectionResult);
+      delay(1000);
+      attempts++;
     }
   }
-  return attempts;
+  return attempts < MAX_ATTEMPTS;
 } 
 
+// MQTT connection status, return MQTT connected or not
 bool mqttConnect() {
 
   uint8_t attempts = 0;
@@ -84,6 +128,9 @@ bool mqttConnect() {
 
     if (mqttConnectionResult != 0) {
       mqtt.disconnect();
+      if (attempts == MAX_ATTEMPTS){
+        mqttErrors(mqttConnectionResult);
+      }
     }
   }
 
@@ -103,5 +150,97 @@ void wiFiDetails() {
   Serial.print("Hostname: "); 
   Serial.println(WiFi.getHostname());
 } 
+
+void wiFiErrors(uint8_t errorNumber) {
+  // https://randomnerdtutorials.com/esp32-useful-wi-fi-functions-arduino/#4
+  switch (errorNumber) {
+    case WL_IDLE_STATUS:
+      {
+        Serial.println("Temporary status on Wi-Fi Begin");
+        break;
+      }
+    case WL_NO_SSID_AVAIL:
+      {
+        Serial.println("No SSID are available");
+        break;
+      }
+    case WL_SCAN_COMPLETED:
+      {
+        Serial.println("Scan of networks is complete");
+        break;
+      }
+    case WL_CONNECTED:
+      {
+        Serial.println("Connected to Wi-Fi");
+        break;
+      }
+    case WL_CONNECT_FAILED:
+      {
+        Serial.println("Wi-Fi Connection failed");
+        break;
+      }
+    case WL_CONNECTION_LOST:
+      {
+        Serial.println("Wi-Fi Connection lost");
+        break;
+      }
+    case WL_DISCONNECTED:
+      {
+        Serial.println("Wi-Fi Disconnected");
+        break;
+      }
+    default:
+      {
+        Serial.println("Unknown Wi-Fi Error.");
+        break;
+      }
+  }
+}
+
+void mqttErrors(uint8_t errorNumber) {
+  // http://www.steves-internet-guide.com/client-connections-python-mqtt/
+  switch (errorNumber) {
+    case 0:
+      {
+        Serial.println("MQTT Connection successful");
+        break;
+      }
+    case 1:
+      {
+        Serial.println("MQTT Connection refused – incorrect protocol version");
+        break;
+      }
+    case 2:
+      {
+        Serial.println("MQTT Connection refused – invalid client identifier");
+        break;
+      }
+    case 3:
+      {
+        Serial.println("MQTT Connection refused – server unavailable");
+        break;
+      }
+    case 4:
+      {
+        Serial.println("MQTT Connection refused – bad username or password");
+        break;
+      }
+    case 5:
+      {
+        Serial.println("MQTT Connection refused – not authorised");
+        break;
+      }
+    case 6 - 255:
+      {
+        Serial.println("MQTT Currently unused.");
+        break;
+      }
+    default:
+      {
+        Serial.println("MQTT Unknown error.");
+        break;
+      }
+  }
+}
 
  
