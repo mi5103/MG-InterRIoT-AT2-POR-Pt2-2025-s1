@@ -28,18 +28,29 @@
 
 #define SENSOR 25
 
+#define LED_RED_1 4
+#define LED_GREEN_1 18
+#define LED_BLUE_1 19
+
 WiFiClient wifiClient;
 Adafruit_MQTT_Client mqtt(&wifiClient, IO_SERVER, IO_SERVERPORT, IO_USERNAME, IO_KEY);
 Adafruit_MQTT_Publish presence = Adafruit_MQTT_Publish(&mqtt, IO_USERNAME "/feeds/inter-riot-devices");
 Adafruit_MQTT_Publish sensor = Adafruit_MQTT_Publish(&mqtt, IO_USERNAME "/feeds/inter-riot-at2-data");
 
 
-
 void setup() { 
   pinMode(SENSOR, INPUT);
   int sensor_value = analogRead(SENSOR);
     
-  Serial.begin(115200); // serial connection and speed 
+  Serial.begin(115200);
+
+  pinMode (LED_RED_1, OUTPUT); 
+  pinMode (LED_GREEN_1, OUTPUT); 
+  pinMode (LED_BLUE_1, OUTPUT); 
+ 
+  ledOn(LED_RED_1); 
+  ledOff(LED_GREEN_1); 
+  ledOff(LED_BLUE_1);
 
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);  // wake the device once every 30 minutes
   Serial.println();
@@ -50,18 +61,37 @@ void setup() {
     Serial.println("WiFi Connected"); 
     wiFiDetails();
 
+    ledOff(LED_RED_1);
+    ledOff(LED_BLUE_1);
+    ledFlash(2);
+
     bool mqttConnected = mqttConnect();
         
     if (mqttConnected) {
       Serial.println("MQTT Connected");
+      ledFlash(3);
+
       presence.publish("Online");
       Serial.println("Sent message");
+
+      flashBlue();
 
       Serial.print("Sensor value: ");
       Serial.println(String(sensor_value));
       sensor.publish(String(sensor_value).c_str());
 
+      flashBlue();
+
       delay(5000);
+
+      ledOff(LED_RED_1); 
+      ledOff(LED_GREEN_1); 
+      ledOff(LED_BLUE_1);
+
+      pinMode (LED_RED_1, INPUT); 
+      pinMode (LED_GREEN_1, INPUT); 
+      pinMode (LED_BLUE_1, INPUT); 
+ 
       esp_deep_sleep_start();
     } else {
       delay(1000);
@@ -69,6 +99,15 @@ void setup() {
       Serial.println("Going to sleep");
       delay(1000);
       Serial.flush();
+
+      ledOff(LED_RED_1); 
+      ledOff(LED_GREEN_1); 
+      ledOff(LED_BLUE_1);
+      
+      pinMode (LED_RED_1, INPUT); 
+      pinMode (LED_GREEN_1, INPUT); 
+      pinMode (LED_BLUE_1, INPUT);
+
       esp_deep_sleep_start();
       Serial.println("MQTT Connection Failed");  // never excuted
     }
@@ -78,6 +117,15 @@ void setup() {
     Serial.println("Going to sleep");
     delay(1000);
     Serial.flush();
+
+    ledOff(LED_RED_1); 
+    ledOff(LED_GREEN_1); 
+    ledOff(LED_BLUE_1);
+    
+    pinMode (LED_RED_1, INPUT); 
+    pinMode (LED_GREEN_1, INPUT); 
+    pinMode (LED_BLUE_1, INPUT);
+
     esp_deep_sleep_start();
     Serial.println("WiFi Connection Failed");  // never excuted
   }
@@ -141,6 +189,32 @@ bool mqttConnect() {
   return attempts < MAX_ATTEMPTS;
 }
 
+void ledOff(int ledPin){
+  digitalWrite(ledPin, LOW);
+}
+
+void ledOn(int ledPin){
+  digitalWrite(ledPin, HIGH);
+}
+
+void ledFlash(int flash){
+  int attempts = 0;
+  while(attempts < flash){
+    ledOff(LED_RED_1);
+    ledOff(LED_BLUE_1);
+    ledOn(LED_GREEN_1);
+    delay(100);
+    ledOff(LED_GREEN_1);
+    delay(100);
+    attempts++;
+  }
+}
+
+void flashBlue(){
+  ledOn(LED_BLUE_1);
+  delay(100);
+  ledOff(LED_BLUE_1);
+}
 
 // Display the wifi details 
 void wiFiDetails() { 
