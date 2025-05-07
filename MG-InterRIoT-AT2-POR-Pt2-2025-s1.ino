@@ -26,13 +26,19 @@
 #define uS_TO_S_FACTOR 1000000 // microseconds per second
 #define TIME_TO_SLEEP 30        // seconds, test:30sec
 
+#define SENSOR 25
+
 WiFiClient wifiClient;
 Adafruit_MQTT_Client mqtt(&wifiClient, IO_SERVER, IO_SERVERPORT, IO_USERNAME, IO_KEY);
 Adafruit_MQTT_Publish presence = Adafruit_MQTT_Publish(&mqtt, IO_USERNAME "/feeds/inter-riot-devices");
+Adafruit_MQTT_Publish sensor = Adafruit_MQTT_Publish(&mqtt, IO_USERNAME "/feeds/inter-riot-at2-data");
 
 
 
 void setup() { 
+  pinMode(SENSOR, INPUT);
+  int sensor_value = analogRead(SENSOR);
+    
   Serial.begin(115200); // serial connection and speed 
 
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);  // wake the device once every 30 minutes
@@ -45,11 +51,16 @@ void setup() {
     wiFiDetails();
 
     bool mqttConnected = mqttConnect();
-
+        
     if (mqttConnected) {
       Serial.println("MQTT Connected");
       presence.publish("Online");
       Serial.println("Sent message");
+
+      Serial.print("Sensor value: ");
+      Serial.println(String(sensor_value));
+      sensor.publish(String(sensor_value).c_str());
+
       delay(5000);
       esp_deep_sleep_start();
     } else {
