@@ -15,6 +15,8 @@
 const char* ssid = "NMT-IoT"; 
 const char* password = "Its!Working"; 
 
+// const char*topic = "inter-riot-devices"
+
 #define IO_USERNAME "mikoG"
 #define IO_KEY "aio_XBKT975OLkQGhrl0EEdbUK6eiljt"
 #define IO_SERVER "io.adafruit.com"

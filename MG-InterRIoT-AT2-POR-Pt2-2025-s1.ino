@@ -26,13 +26,11 @@
 #define uS_TO_S_FACTOR 1000000 // microseconds per second
 #define TIME_TO_SLEEP 30        // seconds, test:30sec
 
-WiFiClient subClient;
-Adafruit_MQTT_Client mqtt(&subClient, IO_SERVER, IO_SERVERPORT, IO_USERNAME, IO_KEY);
-PubSubClient client(subClient);
+WiFiClient wifiClient;
+Adafruit_MQTT_Client mqtt(&wifiClient, IO_SERVER, IO_SERVERPORT, IO_USERNAME, IO_KEY);
+Adafruit_MQTT_Publish presence = Adafruit_MQTT_Publish(&mqtt, IO_USERNAME "/feeds/inter-riot-devices");
 
-long lastMsg = 0;
-char msg[50]; 
-int value = 0;
+
 
 void setup() { 
   Serial.begin(115200); // serial connection and speed 
@@ -46,13 +44,14 @@ void setup() {
     Serial.println("WiFi Connected"); 
     wiFiDetails();
 
-    // client.setServer(IO_SERVER, IO_SERVERPORT);
-    // client.setCallback(callback);
-
     bool mqttConnected = mqttConnect();
 
     if (mqttConnected) {
       Serial.println("MQTT Connected");
+      presence.publish("Online");
+      Serial.println("Sent message");
+      delay(5000);
+      esp_deep_sleep_start();
     } else {
       delay(1000);
       // sleep if no connection to either MQTT 
@@ -75,12 +74,6 @@ void setup() {
 
 void loop() {
 
-}
-
-void callback(char* topic, byte* message, unsigned int length){
-  String messageTemp;
-
-  for(int i = 0; i < length; i++;)
 }
 
 // wifi connection status, return wifi connected or not 
