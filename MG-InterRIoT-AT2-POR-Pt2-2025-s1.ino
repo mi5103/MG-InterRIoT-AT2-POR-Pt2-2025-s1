@@ -17,14 +17,11 @@
 #include <Adafruit_MQTT.h>
 #include <Adafruit_MQTT_Client.h>
 
-// #include <PubSubClient.h> 
-// #include <ArduinoJson.h>
-
 #define RETRY_PERIOD 1000 // wait time at first  
 #define MAX_ATTEMPTS 5
 
 #define uS_TO_S_FACTOR 1000000 // microseconds per second
-#define TIME_TO_SLEEP 30        // seconds, test:30sec
+#define TIME_TO_SLEEP 1800        // seconds, 30min
 
 #define SENSOR 25
 
@@ -149,10 +146,6 @@ bool wiFiConnect() {
     Serial.print("."); 
     delay(RETRY_PERIOD); 
     attempts++;
-    // if (attempts == 10) {
-    //   Serial.println();  // new line every 10 dots
-    //   attempts = 0;
-    // }
     if (attempts == MAX_ATTEMPTS) {
       wiFiErrors(wifiConnectionResult);
       delay(1000);
